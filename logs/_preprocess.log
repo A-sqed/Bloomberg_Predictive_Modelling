@@ -1,0 +1,14 @@
+2021-12-23 09:23:42,476 - _preprocess_xlsx - DEBUG -  Preprocessing data, using target XLSX: ./Economic_Data_2020_08_01.xlsx and target                 parameters: LF98TRUU_Index_OAS
+2021-12-23 09:23:43,392 - _preprocess_xlsx - DEBUG - momentum_list: ['CDX_HY', 'LF98TRUU_Index_OAS', 'GOLD']
+2021-12-23 09:23:43,394 - _preprocess_xlsx - DEBUG - Adding new col for CDX_HY_momentum
+2021-12-23 09:23:43,395 - _preprocess_xlsx - DEBUG - Adding new col for LF98TRUU_Index_OAS_momentum
+2021-12-23 09:23:43,396 - _preprocess_xlsx - DEBUG - Adding new col for GOLD_momentum
+2021-12-23 09:23:43,399 - _preprocess_xlsx - DEBUG -  Splitting Test and Training Data
+2021-12-23 09:23:43,411 - _preprocess_xlsx - DEBUG -  Encoding target training and test data
+2021-12-23 09:46:17,365 - _preprocess_xlsx - DEBUG -  Preprocessing data, using target XLSX: ./Economic_Data_2020_08_01.xlsx and target                 parameters: LF98TRUU_Index_OAS
+2021-12-23 09:46:18,267 - _preprocess_xlsx - DEBUG - momentum_list: ['CDX_HY', 'LF98TRUU_Index_OAS', 'GOLD']
+2021-12-23 09:46:18,268 - _preprocess_xlsx - DEBUG - Adding new col for CDX_HY_momentum
+2021-12-23 09:46:18,269 - _preprocess_xlsx - DEBUG - Adding new col for LF98TRUU_Index_OAS_momentum
+2021-12-23 09:46:18,270 - _preprocess_xlsx - DEBUG - Adding new col for GOLD_momentum
+2021-12-23 09:46:18,274 - _preprocess_xlsx - DEBUG -  Splitting Test and Training Data
+2021-12-23 09:46:18,274 - _preprocess_xlsx - DEBUG -  Encoding target training and test data
