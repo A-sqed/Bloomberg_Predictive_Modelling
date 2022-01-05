@@ -40,11 +40,11 @@ pipeline = _preprocessing._preprocess_xlsx(file_buffer,
                                            momentum_list = momentum_list
                                            )
 
-new_model = _models._build_model(pipeline, model_name='XGB')
+new_model = _models._build_model(pipeline, model_name='XGBoost')
 
 #works!
-#new_model.predictive_power()
-#new_model._feature_importance()
+new_model.predictive_power()
+new_model._feature_importance()
 new_model._feature_importance_over_time(forecast_range=30)
 
 # %%

@@ -11,6 +11,8 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from tabulate import tabulate
 from tqdm import tqdm
+import os
+path = os.path.dirname(__file__)
 
 ################################################################################
 # Pre-Processing of XLSX Into Pandas Dataframe
@@ -25,14 +27,14 @@ class _preprocess_xlsx:
                 momentum_list = [],
                 split_percentage = .20,
                 sequential = False,
-                momentum_X_days = 10,
+                momentum_X_days = [5, 10, 15],
                 momentum_Y_days = 30,
                 log_flag = True):
         
         if log_flag:
             self.logger = logging.getLogger('_preprocess_xlsx')
             self.logger.setLevel(logging.INFO)
-            self.handler = logging.FileHandler('./logs/_preprocess.log')
+            #self.handler = logging.FileHandler(path+'/preprocess.log')
             self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         self.logger.info(" Preprocessing, using XLSX: {} and target(s): {}".format(xlsx_file, target_col))
@@ -123,7 +125,7 @@ class _preprocess_xlsx:
         ct_below = data_below_thresh.shape[0]
         tot = float(self.df.shape[0])
         IG =  entropy_target_col - entropy_above*ct_above/tot - entropy_below*ct_below/tot
-        print(" IG of {} and {} at threshold {} is {}").format(info_column,
+        self.logger.info(" IG of {} and {} at threshold {} is {}").format(info_column,
                                                               target_col,
                                                               threshold,
                                                               IG)
@@ -153,12 +155,13 @@ class _preprocess_xlsx:
         
         else:
             for item in momentum_list:
-                new_item = str(item) + "_" + str(momentum_X_days) + "day_rolling_average"
-                self.df[new_item] =  \
-                self.df[item].rolling(window=momentum_X_days).mean() -  \
-                self.df[item].rolling(window=momentum_Y_days).mean() /  \
-                self.df[item].rolling(window=momentum_Y_days).mean()
-                self.logger.info(" Adding new col for {}".format(new_item))
+                for win in momentum_X_days:
+                    new_item = str(item) + "_" + str(win) + "day_rolling_average"
+                    self.df[new_item] =  \
+                    self.df[item].rolling(window=win).mean() -  \
+                    self.df[item].rolling(window=momentum_Y_days).mean() /  \
+                    self.df[item].rolling(window=momentum_Y_days).mean()
+                    self.logger.info(" Adding new col for {}".format(new_item))
 
     # Add column to df with net change from day to dh in future
     def _change_over_days(self, dh=None):
@@ -231,7 +234,7 @@ class _preprocess_xlsx:
         return self.Y_encoded, self.Y_train_encoded, self.Y_test_encoded
 
     def _return_xlsx_dataframe(self):
-        return self.df
+        return self.complete_data
     
     def _return_X_Y_dataframes(self):
         return self.X, self.Y

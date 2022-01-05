@@ -3,7 +3,7 @@
 # Email: FAA2160@columbia.edu 
 ################################################################################
 
-import datetime
+import datetime, os
 import logging
 import random
 import sys
@@ -31,14 +31,15 @@ from sklearn.tree import DecisionTreeRegressor
 from sktime.forecasting.model_selection import SingleWindowSplitter
 from statsmodels.tsa.stattools import adfuller, grangercausalitytests
 from xgboost import XGBRegressor, plot_importance, plot_tree
-
+path = os.path.dirname(__file__)
 import _preprocessing
+path = os.path.dirname(__file__)
 
 #Debug and logger
 warnings.filterwarnings('ignore')
 logger = logging.getLogger('_pred_power')
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler('./logs/_pred_power.log')
+#handler = logging.FileHandler(path+'/model.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
@@ -49,7 +50,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 class _build_model:
     def __init__(self, 
                 pipeline,
-                model_name='XGB',
+                model_name='XGBoost',
                 estimators = 1000,
                 random_state = random.seed(),
                 max_forecast=30):
@@ -76,7 +77,7 @@ class _build_model:
         # Default Models
         self.models_available = {'CART':DecisionTreeRegressor(
                                                 random_state=random_state),
-                                 'XGB':XGBRegressor(
+                                 'XGBoost':XGBRegressor(
                                                 n_estimators=estimators, 
                                                 random_state=random_state),
                                  'AdaBoostClassifier':AdaBoostClassifier(
@@ -190,7 +191,6 @@ class _build_model:
             self._feature_importance(forecast_range, plot=False)
         
         list_of_days_to_forecast = list(range(1,forecast_range+1))
-        print(list_of_days_to_forecast)
         df = pd.DataFrame()
         column_names = []
         
@@ -201,7 +201,6 @@ class _build_model:
             else:
                 feature_dict = pd.DataFrame.from_dict(self.features_over_time_dict[day])
                 df = df.append(feature_dict, ignore_index = True)
-        print(df)    
         df['day'] =  list_of_days_to_forecast      
 
         remove_list = []

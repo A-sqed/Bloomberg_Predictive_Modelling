@@ -2,9 +2,8 @@
 # Author: Adrian Adduci
 # Email: FAA2160@columbia.edu 
 ################################################################################
-
+import os
 import streamlit as st
-import data.SessionState as SessionState
 st.set_option('deprecation.showfileUploaderEncoding', False)
 import sys, time, datetime, logging
 import matplotlib.pyplot as plt
@@ -17,12 +16,15 @@ import pylab as pl
 import seaborn as sns
 import _preprocessing, _models
 from PIL import Image
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
 
-banner = Image.open('.mp4/_img/arrow_logo_2.png')
-st.sidebar.image(banner, caption='CDX Trade Predictions', width=300)
-pd.set_option('display.max_columns', None) 
+
 session_state = st.session_state
 
+path = os.path.dirname(__file__)
+banner = Image.open(path+'/_img/arrow_logo.png')
+st.sidebar.image(banner, caption='CDX Trade Predictions', width=300)
+pd.set_option('display.max_columns', None) 
 global counter
 counter = 0
 pipeline = None
@@ -33,12 +35,14 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log_info = logging.getLogger(__name__)
 log_info.setLevel(logging.INFO)
-handler = logging.FileHandler('./logs/_main.log')
+handler = logging.FileHandler(path+'/_main.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 ################################################################################
 #  
 ################################################################################
+
+st.markdown('<style>body{background-color: White;}</style>',unsafe_allow_html=True)
 
 # Set max width of window
 def _max_width_():
@@ -64,12 +68,8 @@ def color_arrow(val):
     return 'background-color: %s' % color
 
 # Use pipeline and model selection to run results 
-def run_model(model_name):
-    
-    model_results =  _models(model_name)
-    
-    final_data.sort_values('Dates', ascending=False).set_index('Dates')
-    
+def run_model(model_name):    
+    model_results =  _models._build_model(session_state.data, model_name)
     return model_results
 
 ################################################################################
@@ -77,6 +77,7 @@ def run_model(model_name):
 ################################################################################
 
 st.sidebar.title("To Begin:")
+session_state.model_loaded = False
 
 file_buffer = st.sidebar.file_uploader("Upload new Excel file")
 
@@ -84,16 +85,19 @@ file_buffer = st.sidebar.file_uploader("Upload new Excel file")
 target_feature = st.sidebar.text_input("Target Feature", 
                                        value="LF98TRUU_Index_OAS", 
                                        type="default")
+
+momentum_list = st.sidebar.text_input("Add Momentum Parameters", 
+                                       value="LF98TRUU_Index_OAS, LUACTRUU_Index_OAS", 
+                                       type="default")
+
+
 date_range = st.sidebar.date_input("Select a date range", 
                                    [datetime.date(2012, 8, 1), 
                                     datetime.date(2020, 7, 30)] )
 st.title("Decision Support System for CDX Trading")
 
 model_chooser = st.selectbox('Which Model Would You Like to Use?',
-                             ('AdaBoostClassifier', 
-                              'LogisticRegression', 
-                              'Quadratic Regression', 
-                              'KNeighborsRegressor'))
+                             (['XGBoost']))
 
 st.write('You selected:', model_chooser)
 
@@ -105,10 +109,15 @@ if st.sidebar.button('Load Data'):
         my_bar = st.progress(0)
         log.info(" Preprocessing Data File")
         my_bar.progress(20)
-        pipeline = _preprocessing._preprocess_xlsx(file_buffer,target_feature)
+        
+        pipeline = _preprocessing._preprocess_xlsx(file_buffer,
+                                                   target_feature,
+                                                   momentum_list.split("delimiter"))
         my_bar.progress(60)
-        complete_data = pipeline.return_xlsx_dataframe()
-        session_state.data = complete_data
+        session_state.pipeline = pipeline
+        session_state.data = session_state.pipeline._return_xlsx_dataframe()
+        
+        # Set dates in the dataframe 
         session_state.data['Dates'] = pd.to_datetime(session_state.data['Dates']).dt.date
         session_state.data = session_state.data[(session_state.data['Dates'] >= date_range[0]) & 
                                                 (session_state.data['Dates'] <= date_range[1])]
@@ -125,6 +134,8 @@ if st.sidebar.button('Load Data'):
 if st.sidebar.button('Train Model'):
     if pipeline and model_chooser:
         log.info(" Training Model: {}".format(model_chooser))
+        
+        # _build_model and return it to sessions state
         session_state.model_result = run_model(model_chooser)
         session_state.model_loaded = True
     else:
@@ -134,7 +145,10 @@ if st.sidebar.button('Train Model'):
 data = None
 my_bar = None
 
-
+################################################################################
+# Main 
+################################################################################      
+        
 if session_state.model_loaded:
     page_selection = st.sidebar.radio("Page", 
                                       ('Main', 
@@ -165,7 +179,6 @@ if session_state.model_loaded:
 
         my_bar.progress(60)
         st.header("Predictions and Forecasts")
-
         display_data = session_state.model_result['final_result'].head(200)
         for ds in session_state.days_selected:
             display_data['CDX_HY_Pred_{}D'.format(ds)] = display_data['CDX_HY_UpNext_{}Day'.format(ds)].map(
@@ -196,6 +209,8 @@ if session_state.model_loaded:
                 IG_pos = "<font color='red'>**LONG**</font>, based on our predicted price increase in longer term"
                 IG_explanation = 'INCREASE'
             return HY_pos, IG_pos, HY_explanation, IG_explanation
+        
+        
         HY_pos, IG_pos, HY_explanation, IG_explanation = get_trade_positions(display_data.iloc[0])
         
         st.markdown("Model recommends taking {} position on CDX HY, based on our predicted price {} in longer term".format(HY_pos, HY_explanation),
@@ -205,6 +220,11 @@ if session_state.model_loaded:
         s = display_data.style.applymap(color_arrow)
         s
         my_bar.progress(100)
+        
+################################################################################
+# Feature Importance Page 
+################################################################################      
+        
     if page_selection == 'Feature Importance':
         my_bar = st.progress(0)
         feature_description = pd.read_csv('feature_description.csv')
@@ -214,6 +234,11 @@ if session_state.model_loaded:
         if day_display:
             session_state.model_result[day_display]['feature_plot']
         my_bar.progress(100)
+
+################################################################################
+# Model Importance Page 
+################################################################################           
+        
     if page_selection == 'Model Performance':
         my_bar = st.progress(0)
         day_display = st.selectbox('Which Model?', session_state.days_selected, 1)
@@ -221,8 +246,8 @@ if session_state.model_loaded:
         if day_display:
             session_state.model_result[day_display]['ROCplot']
         my_bar.progress(100)
+
 else:
     st.info('Please select a file and train the model to begin')
-
 
 _max_width_()
