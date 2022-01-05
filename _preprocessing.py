@@ -3,16 +3,23 @@
 # Email: FAA2160@columbia.edu 
 ################################################################################
 
-import datetime, json, logging, operator, sys, time
-from pathlib import Path
+import datetime
+import json
+import logging
+import operator
+import os
+import pathlib
+import sys
+import time
+
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from tabulate import tabulate
 from tqdm import tqdm
-import os
-path = os.path.dirname(__file__)
+
+path = pathlib.Path(__file__).parent.absolute()
 
 ################################################################################
 # Pre-Processing of XLSX Into Pandas Dataframe
@@ -34,7 +41,7 @@ class _preprocess_xlsx:
         if log_flag:
             self.logger = logging.getLogger('_preprocess_xlsx')
             self.logger.setLevel(logging.INFO)
-            #self.handler = logging.FileHandler(path+'/preprocess.log')
+            self.handler = logging.FileHandler(str(path)+'\\logs\\_preprocess.log')
             self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         self.logger.info(" Preprocessing, using XLSX: {} and target(s): {}".format(xlsx_file, target_col))

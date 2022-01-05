@@ -3,8 +3,10 @@
 # Email: FAA2160@columbia.edu 
 ################################################################################
 
-import datetime, os
+import datetime
 import logging
+import os
+import pathlib
 import random
 import sys
 import time
@@ -16,7 +18,6 @@ import pandas as pd
 import ppscore as pps
 import pylab as pl
 import seaborn as sns
-from tqdm import tqdm
 from sklearn import linear_model, metrics, preprocessing
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.exceptions import NotFittedError
@@ -30,16 +31,18 @@ from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
 from sklearn.tree import DecisionTreeRegressor
 from sktime.forecasting.model_selection import SingleWindowSplitter
 from statsmodels.tsa.stattools import adfuller, grangercausalitytests
+from tqdm import tqdm
 from xgboost import XGBRegressor, plot_importance, plot_tree
-path = os.path.dirname(__file__)
+
 import _preprocessing
-path = os.path.dirname(__file__)
+
+path = pathlib.Path(__file__).parent.absolute()
 
 #Debug and logger
 warnings.filterwarnings('ignore')
-logger = logging.getLogger('_pred_power')
+logger = logging.getLogger('_model')
 logger.setLevel(logging.INFO)
-#handler = logging.FileHandler(path+'/model.log')
+handler = logging.FileHandler(str(path)+'\\logs\\_model.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 

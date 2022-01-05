@@ -3,9 +3,16 @@
 # Email: FAA2160@columbia.edu 
 ################################################################################
 import os
+
 import streamlit as st
+
 st.set_option('deprecation.showfileUploaderEncoding', False)
-import sys, time, datetime, logging
+import datetime
+import logging
+import pathlib
+import sys
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,15 +21,16 @@ import plotly.figure_factory as ff
 import plotly.graph_objs as go
 import pylab as pl
 import seaborn as sns
-import _preprocessing, _models
 from PIL import Image
-os.environ['NUMEXPR_MAX_THREADS'] = '16'
 
+import _models
+import _preprocessing
 
 session_state = st.session_state
 
-path = os.path.dirname(__file__)
-banner = Image.open(path+'/_img/arrow_logo.png')
+path = pathlib.Path(__file__).parent.absolute()
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+banner = Image.open(str(path)+'\\_img\\arrow_logo.png')
 st.sidebar.image(banner, caption='CDX Trade Predictions', width=300)
 pd.set_option('display.max_columns', None) 
 global counter
@@ -35,7 +43,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log_info = logging.getLogger(__name__)
 log_info.setLevel(logging.INFO)
-handler = logging.FileHandler(path+'/_main.log')
+handler = logging.FileHandler(str(path)+'/logs/_main.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 ################################################################################
@@ -94,6 +102,13 @@ momentum_list = st.sidebar.text_input("Add Momentum Parameters",
 date_range = st.sidebar.date_input("Select a date range", 
                                    [datetime.date(2012, 8, 1), 
                                     datetime.date(2020, 7, 30)] )
+
+
+
+################################################################################
+# Main Page
+################################################################################
+
 st.title("Decision Support System for CDX Trading")
 
 model_chooser = st.selectbox('Which Model Would You Like to Use?',
@@ -116,12 +131,12 @@ if st.sidebar.button('Load Data'):
         my_bar.progress(60)
         session_state.pipeline = pipeline
         session_state.data = session_state.pipeline._return_xlsx_dataframe()
-        
+        my_bar.progress(80)
         # Set dates in the dataframe 
         session_state.data['Dates'] = pd.to_datetime(session_state.data['Dates']).dt.date
         session_state.data = session_state.data[(session_state.data['Dates'] >= date_range[0]) & 
                                                 (session_state.data['Dates'] <= date_range[1])]
-        my_bar.progress(80)
+        my_bar.progress(100)
         
     else:
         st.sidebar.info('Please select a file')
