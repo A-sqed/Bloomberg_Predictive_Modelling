@@ -45,7 +45,7 @@ logger = logging.getLogger('_model')
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(str(path)+'\\logs\\_model.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
 ################################################################################
 # Fit and Predict a Chosen Model 
 ################################################################################
@@ -113,7 +113,7 @@ class _build_model:
 ################################################################################
 # Class Methods 
 ################################################################################
-    def predictive_power(self, forecast_range=30):
+    def predictive_power(self, forecast_range=30, plot=True):
         
         all_data, X_data, Y_data = self.pipeline._return_data_with_dh_actuals(forecast_range)
                 
@@ -128,7 +128,9 @@ class _build_model:
         f, ax = plt.subplots(figsize=(16, 5))
         ax.set_title("Predicative Power for {0} at {1} Days".format(pipeline_target, forecast_range))
         sns.barplot(data=predictors_df, y="x", x="ppscore",palette="rocket")
-        f.show() 
+        plt.savefig((str(path))+"\\_img\\predictive_power.png")
+        if plot:
+            f.show() 
                  
     def _feature_importance(self, forecast_range=30, plot=True):
 
@@ -173,17 +175,19 @@ class _build_model:
             feats = dict(feats)    
             feats_model_by_day[day] = feats
             
-            if plot == True:
-                if day == forecast_range:
-                    for target, feature in feats_model_by_day.items():
-                        width = 1
-                        keys = feature.keys()
-                        values = feature.values()
-                        if target == day:
-                            f, ax = plt.subplots(figsize=(16, 5))
-                            ax.set_title("Feature Importance for {0} Day Forecast: {1}".format(target, pipeline_target))
-                            sns.barplot(y=list(keys), x=list(values), palette="rocket")
-                            f.show()     
+
+            if day == forecast_range:
+                for target, feature in feats_model_by_day.items():
+                    width = 1
+                    keys = feature.keys()
+                    values = feature.values()
+                    if target == day:
+                        f, ax = plt.subplots(figsize=(16, 5))
+                        ax.set_title("Feature Importance for {0} Day Forecast: {1}".format(target, pipeline_target))
+                        sns.barplot(y=list(keys), x=list(values), palette="rocket")
+                        plt.savefig((str(path))+"\\_img\\feats_importance.png")
+                        if plot:
+                            f.show()    
 
     def _feature_importance_over_time(self, plot=True, forecast_range=30, usefulness_threshold=0.2):
         
@@ -230,8 +234,8 @@ class _build_model:
         ax.set(xlabel='Days Out', ylabel='Predictive Importance')
         ax.set(xticks= list(range(1,forecast_range+1)))
         ax.legend(column_names)
-        if plot:
-            f.show()        
+        plt.savefig((str(path))+"\\_img\\feats_importance_over_time.png")
+       
     # Classification only, n/a for regression models 
     def _return_roc_and_precision_recall_curves(self):
         sns.set_palette(sns.color_palette("rocket"))

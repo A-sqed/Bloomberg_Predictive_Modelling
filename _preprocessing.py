@@ -24,7 +24,7 @@ logger = logging.getLogger('_preprocess_xlsx')
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(str(path)+'\\logs\\_preprocess.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
 ################################################################################
 # Pre-Processing of XLSX Into Pandas Dataframe
 ################################################################################
@@ -47,7 +47,7 @@ class _preprocess_xlsx:
         try:
             assert (pathlib.Path(xlsx_file)).is_file()
         except Exception as e:
-            self.logger.debug(" Missing XLSX File")
+            logger.debug(" Missing XLSX File")
 
         self.df = pd.read_excel(xlsx_file)
         self.label_encoder = preprocessing.LabelEncoder()
@@ -173,14 +173,14 @@ class _preprocess_xlsx:
                     self.df[item].rolling(window=win).mean() -  \
                     self.df[item].rolling(window=momentum_Y_days).mean() /  \
                     self.df[item].rolling(window=momentum_Y_days).mean()
-                    self.logger.info(" Adding new col for {}".format(new_item))
+                    logger.info(" Adding new col for {}".format(new_item))
 
      # Add column to df with net change from day to dh in future
     def _change_over_days(self, dh=None):
         if dh == None:
             for dh in self.forecast_list:
 
-                self.logger.debug(" Processing for {} days ahead".format(dh))
+                logger.debug(" Processing for {} days ahead".format(dh))
                 self.target_change = '{}_{}_Day_Change'.format(self.target_col, dh)
                 self.df[str(self.target_change)] = \
                     self.df[self.target_col] - \
@@ -188,7 +188,7 @@ class _preprocess_xlsx:
         else:
             for d in dh:
 
-                self.logger.debug(" Processing for {} days ahead".format(d))
+                logger.debug(" Processing for {} days ahead".format(d))
                 self.target_change = '{}_{}_Day_Change'.format(self.target_col, d)
                 self.df[str(self.target_change)] = \
                     self.df[self.target_col] - \
@@ -211,7 +211,7 @@ class _preprocess_xlsx:
             
             # Add predicative column for days ahead (d)
             forecast_name = '{0}_{1}D_Ahead_Actual'.format(self.target_col, dh)
-            #self.logger.info("Adding {0} ".format(forecast_name))
+            #logger.info("Adding {0} ".format(forecast_name))
             
             temp_data[forecast_name] = temp_data[self.target_col].shift(dh)
             temp_data = temp_data.dropna()
