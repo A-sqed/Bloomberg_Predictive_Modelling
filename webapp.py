@@ -78,6 +78,7 @@ def color_arrow(val):
 # Use pipeline and model selection to run results 
 def run_model(model_name):    
     model_results =  _models._build_model(session_state.data, model_name)
+    model_results = model_results.sort_values('Dates', ascending=False).set_index('Dates')
     return model_results
 
 ################################################################################
@@ -172,11 +173,14 @@ if session_state.model_loaded:
                                       0)
 
     if page_selection == 'Main':
+        
         if not my_bar:
             my_bar = st.progress(0)
-        st.header("CDX Historical Data:")
+        
+        st.header("Historical Data:")
         
         histo_table = st.checkbox("Display Historical Data Table?", False)
+        
         if histo_table:
             st.write(session_state.data.sort_values('Dates', ascending=False).head(200).set_index('Dates'))
         
@@ -185,15 +189,12 @@ if session_state.model_loaded:
         options = st.multiselect('View Historical Indices',
                                 feature_columns,
                                 target_feature)
-        
-        df_2target = pd.melt(session_state.data, id_vars=['Dates'], value_vars=options)
-        df_2target.columns = ['Dates','Index','Value']
-
-        fig = px.line(df_2target, x="Dates", y="Value", color='Index', width=1400)
+    
         st.plotly_chart(fig)
-
         my_bar.progress(60)
+        
         st.header("Predictions and Forecasts")
+        
         display_data = session_state.model_result['final_result'].head(200)
         for ds in session_state.days_selected:
             display_data['CDX_HY_Pred_{}D'.format(ds)] = display_data['CDX_HY_UpNext_{}Day'.format(ds)].map(
