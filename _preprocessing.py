@@ -20,6 +20,10 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 path = pathlib.Path(__file__).parent.absolute()
+logger = logging.getLogger('_preprocess_xlsx')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler(str(path)+'\\logs\\_preprocess.log')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 ################################################################################
 # Pre-Processing of XLSX Into Pandas Dataframe
@@ -36,18 +40,12 @@ class _preprocess_xlsx:
                 sequential = False,
                 momentum_X_days = [5, 10, 15],
                 momentum_Y_days = 30,
-                log_flag = True):
+                ):
         
-        if log_flag:
-            self.logger = logging.getLogger('_preprocess_xlsx')
-            self.logger.setLevel(logging.INFO)
-            self.handler = logging.FileHandler(str(path)+'\\logs\\_preprocess.log')
-            self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-        self.logger.info(" Preprocessing, using XLSX: {} and target(s): {}".format(xlsx_file, target_col))
-
+        logger.info(" Preprocessing, using XLSX: {} and target(s): {}".format(xlsx_file, target_col))
+       
         try:
-            assert (Path(xlsx_file)).is_file()
+            assert (pathlib.Path(xlsx_file)).is_file()
         except Exception as e:
             self.logger.debug(" Missing XLSX File")
 
@@ -60,35 +58,18 @@ class _preprocess_xlsx:
         self.sequential = sequential
         self.momentum_X_days = momentum_X_days
         self.momentum_Y_days = momentum_Y_days
-
-        # Fix data types (1)
-        try:
-            self.df['EARN_DOWN'] = self.df['EARN_DOWN'].astype(np.float16)
-        except ValueError:
-            self.logger.debug(" EARN_DOWN Not Included in XLSX")
+   
+        self._add_custom_features()
         
-        try:
-            self.df['EARN_UP'] = self.df['EARN_UP'].astype(np.float16)
-        except ValueError:
-            self.logger.debug(" EARN_UP Not Included in XLSX")
-
-        # Add new momentum features
-        self._add_momentum(self.momentum_list, 
-                          self.momentum_X_days, 
-                          self.momentum_Y_days)
-
-        # Hold orginal data set
         self.complete_data = self.df.dropna().copy()
 
-        # Remove Target Column and Date from data set
         self.X = self.complete_data.drop([ self.target_col,'Dates'], axis=1)
         
         self.feature_cols = self.X.columns
 
-        #Seperate Target Column
         self.Y = self.complete_data[ self.target_col]
 
-        self.logger.debug(" Splitting Test and Training Data")
+        logger.debug(" Splitting Test and Training Data")
 
         self.X_train, self.X_test, self.Y_train, self.Y_test = \
         train_test_split(self.X,
@@ -99,7 +80,7 @@ class _preprocess_xlsx:
         self._find_entropy_of_feature(self.Y)
 
         # Encode Target
-        self.logger.debug(" Encoding target training and test data")
+        logger.debug(" Encoding target training and test data")
         self.Y_encoded = self.label_encoder.fit_transform(self.Y)
         self.Y_train_encoded = self.label_encoder.fit_transform(self.Y_train)
         self.Y_test_encoded = self.label_encoder.fit_transform(self.Y_test)
@@ -115,7 +96,7 @@ class _preprocess_xlsx:
         probas = target_counts/total
         entropy_components = probas * np.log2(probas)
         entropy = (- entropy_components.sum())
-        self.logger.info(" Entropy of target feature is {}".format(entropy))
+        logger.info(" Entropy of target feature is {}".format(entropy))
         return entropy
 
     # H(target) - H(target | info > thresh) - H(target | info <= thresh)
@@ -132,7 +113,7 @@ class _preprocess_xlsx:
         ct_below = data_below_thresh.shape[0]
         tot = float(self.df.shape[0])
         IG =  entropy_target_col - entropy_above*ct_above/tot - entropy_below*ct_below/tot
-        self.logger.info(" IG of {} and {} at threshold {} is {}").format(info_column,
+        logger.info(" IG of {} and {} at threshold {} is {}").format(info_column,
                                                               target_col,
                                                               threshold,
                                                               IG)
@@ -150,9 +131,33 @@ class _preprocess_xlsx:
                 
         return (maximum_threshold, maximum_ig)
 
+################################################################################
+# Customize Import Data For Bloomberg 
+################################################################################
+
+    def _add_custom_features(self):
+        try:
+            self.df['EARN_DOWN'] = self.df['EARN_DOWN'].astype(np.float16)
+        except ValueError as e:
+            logger.debug(" EARN_DOWN Not Included in XLSX")
+            print(e)
+            return
+        
+        try:
+            self.df['EARN_UP'] = self.df['EARN_UP'].astype(np.float16)
+        except ValueError as e:
+            logger.debug(" EARN_UP Not Included in XLSX")
+            print(e)
+            return
+
+        # Add new momentum features
+        self._add_momentum(self.momentum_list, 
+                          self.momentum_X_days, 
+                          self.momentum_Y_days)
+
     def _add_momentum(self, momentum_list, momentum_X_days, momentum_Y_days):
         
-        self.logger.info(" momentum_list: {}".format(momentum_list))
+        logger.info(" momentum_list: {}".format(momentum_list))
         
         if not momentum_list: 
             return
@@ -170,7 +175,7 @@ class _preprocess_xlsx:
                     self.df[item].rolling(window=momentum_Y_days).mean()
                     self.logger.info(" Adding new col for {}".format(new_item))
 
-    # Add column to df with net change from day to dh in future
+     # Add column to df with net change from day to dh in future
     def _change_over_days(self, dh=None):
         if dh == None:
             for dh in self.forecast_list:
@@ -188,7 +193,10 @@ class _preprocess_xlsx:
                 self.df[str(self.target_change)] = \
                     self.df[self.target_col] - \
                     self.df[self.target_col].shift(d)
-            
+                    
+################################################################################
+# Returns
+################################################################################    
     
     # Add column to df with actual value of target in days ahead 
     def _return_data_with_dh_actuals(self, days_ahead = None, target = None):
@@ -215,9 +223,6 @@ class _preprocess_xlsx:
             X_dict[dh] = temp_data
             
         return data_dict, X_dict, Y_dict
-
-    def __str__(self):
-        return print(tabulate(self.df, headers='keys', tablefmt='psql'))
 
     def _set_feature_names(self, new_features):
         self.feature_cols = new_features
@@ -248,3 +253,6 @@ class _preprocess_xlsx:
     
     def _return_forecast_list(self):
         return self.forecast_list
+
+    def __str__(self):
+        return print(tabulate(self.df, headers='keys', tablefmt='psql'))

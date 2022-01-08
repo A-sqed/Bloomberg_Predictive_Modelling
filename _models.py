@@ -23,6 +23,8 @@ from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import plot_roc_curve
+from sklearn.metrics import plot_precision_recall_curve
 from sklearn.model_selection import (TimeSeriesSplit, cross_val_score,
                                      train_test_split)
 from sklearn.neighbors import KNeighborsRegressor
@@ -35,7 +37,6 @@ from tqdm import tqdm
 from xgboost import XGBRegressor, plot_importance, plot_tree
 
 import _preprocessing
-
 path = pathlib.Path(__file__).parent.absolute()
 
 #Debug and logger
@@ -44,7 +45,6 @@ logger = logging.getLogger('_model')
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(str(path)+'\\logs\\_model.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 
 ################################################################################
 # Fit and Predict a Chosen Model 
@@ -109,7 +109,6 @@ class _build_model:
         
         self.features_over_time_dict = {}
         
-        #_print_accuracy(model_name, self.Y_df, self.model_preds)
 
 ################################################################################
 # Class Methods 
@@ -212,7 +211,7 @@ class _build_model:
             usefulness = df[feat].max()
 
             if usefulness < usefulness_threshold:
-                logger.info("feat: {0}, usseful-max: {1}".format(feat, usefulness))
+                logger.info("feat: {}, usseful-max: {:.5f}".format(feat, usefulness))
                 df.drop([feat], axis=1)
                 remove_list.append(feat)
 
@@ -233,6 +232,48 @@ class _build_model:
         ax.legend(column_names)
         if plot:
             f.show()        
+    # Classification only, n/a for regression models 
+    def _return_roc_and_precision_recall_curves(self):
+        sns.set_palette(sns.color_palette("rocket"))
+        pipeline_target = self.pipeline._return_target_col()    
+        accuracy = metrics.accuracy_score(self.Y_test_encoded, self.model_preds)
+        fig_roc, axes = plt.subplots(nrows=1, ncols=2,  figsize=(15, 7))
+        roc_plot = plot_roc_curve(self.model, self.X_test, self.Y_test_encoded, ax=axes[0,0])
+        axes[0,0].title.set_text("{} Prediction ROC [Accuracy: {}]".format(pipeline_target, accuracy))
+        pr_plot = plot_precision_recall_curve(self.model, self.X_test,  self.Y_test_encoded, ax=axes[1,0])
+        axes[1,0].title.set_text("{} Prediction Precision-Recall Curve".format(pipeline_target))
+        fig_roc.tight_layout(pad=3.0)
+        fig_roc.show()
+        return fig_roc
+    
+    def _return_mean_error_metrics(self):
+        MAE = metrics.mean_absolute_error( self.Y_test, self.model_preds)
+        MSE = metrics.mean_squared_error( self.Y_test,  self.model_preds)
+        RMSE = np.sqrt(metrics.mean_squared_error( self.Y_test,  self.model_preds))
+        logger.info('MAE: {:.4}'.format(MAE))
+        logger.info('MSE: {:.4}'.format(MSE))
+        logger.info('RMSE: {:.4}'.format(RMSE))
+        
+        errors_MAE = list()
+        errors = list()
+        errors_RMSE = list()
+        num_predictions = [int(num) for num in range(1,len(self.model_preds)+1)]
+        
+        pipeline_target = self.pipeline._return_target_col()  
+
+        for i in range(0, len(self.Y_test)):
+            err = (list(self.Y_test)[i] - list(self.model_preds)[i])*2
+            errors.append(err)
+
+        err_MSE_df = pd.DataFrame(list(zip(num_predictions, errors)),
+                                  columns = ['Prediction', 'MSE'])
+        sns.set_palette(sns.color_palette("rocket"))
+        sns.set_style("whitegrid")
+        sns.lineplot(data=err_MSE_df, 
+                        y='MSE', 
+                        x='Prediction', 
+                        dashes=False).set_title('Mean Squared Error')   
+        return MAE, MSE, RMSE
 
     def _return_preds(self):
         return self.model_preds
@@ -240,26 +281,4 @@ class _build_model:
     def _return_model(self):
         return self.model
     
-################################################################################
-# WIP
-################################################################################
-"""
-    def _print_accuracy(model_name, Y_test_encoded, model_preds):
-        
-        if model_name == 'Quadratic Regression': 
-            accuracy = metrics.mean_squared_error(Y_test_encoded, 
-                                                            model_preds)
-            
-            logger.info("Accuracy of model {}: {:.2%}".format(model_name, 
-                                                        accuracy))
-            return '{:.2%}'.format(accuracy)
-        
-        else:
-            accuracy = metrics.accuracy_score(Y_test_encoded, 
-                                            model_preds)
-            
-            logger.info("Accuracy of model {}: {:.2%}".format(model_name, 
-                                                        accuracy))
-            return '{:.2%}'.format(accuracy)
 
-"""
