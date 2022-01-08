@@ -19,9 +19,9 @@ new_model = _models._build_model(pipeline, model_name='XGBoost')
 
 #works!
 new_model.predictive_power()
-#new_model._feature_importance()
-#new_model._feature_importance_over_time(forecast_range=30)
-#new_model._return_mean_error_metrics()
+new_model._feature_importance()
+new_model._feature_importance_over_time(forecast_range=30)
+new_model._return_mean_error_metrics()
 
 # Needs a classifier not binary model
 #new_model._return_roc_and_precision_recall_curves()

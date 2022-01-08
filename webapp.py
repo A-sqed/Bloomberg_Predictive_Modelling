@@ -49,10 +49,8 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ################################################################################
 #  
 ################################################################################
+session_state.model_loaded = False
 
-st.markdown('<style>body{background-color: White;}</style>',unsafe_allow_html=True)
-
-# Set max width of window
 def _max_width_():
     max_width_str = f"max-width: 2000px;"
     st.markdown(
@@ -86,7 +84,7 @@ def run_model(model_name):
 ################################################################################
 
 st.sidebar.title("To Begin:")
-session_state.model_loaded = False
+
 
 file_buffer = st.sidebar.file_uploader("Upload new Excel file")
 
@@ -157,7 +155,6 @@ if st.sidebar.button('Train Model'):
     else:
         st.sidebar.info('Please load data and select a model')
 
-
 data = None
 my_bar = None
 
@@ -189,8 +186,11 @@ if session_state.model_loaded:
         options = st.multiselect('View Historical Indices',
                                 feature_columns,
                                 target_feature)
-    
-        st.plotly_chart(fig)
+
+        #st.plotly_chart(fig)
+        # OR plt.savefig("out.png")
+        features = Image.open(str(path)+'\\_img\\predicative_power.png')
+        st.image(features, caption='Predictive Power of Features Over Time', width=300)
         my_bar.progress(60)
         
         st.header("Predictions and Forecasts")
