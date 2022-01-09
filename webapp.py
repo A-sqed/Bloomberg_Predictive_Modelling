@@ -31,13 +31,13 @@ session_state = st.session_state
 path = pathlib.Path(__file__).parent.absolute()
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 banner = Image.open(str(path)+'\\_img\\arrow_logo.png')
-st.sidebar.image(banner, caption='CDX Trade Predictions', width=300)
+st.sidebar.image(banner, caption='Forecast Predictions', width=300)
 pd.set_option('display.max_columns', None) 
 global counter
 counter = 0
 pipeline = None
 complete_data = None
-model_chooser = None
+session_state.model_chooser = None
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -74,9 +74,21 @@ def color_arrow(val):
     return 'background-color: %s' % color
 
 # Use pipeline and model selection to run results 
-def run_model(model_name):    
-    model_results =  _models._build_model(session_state.data, model_name)
+def run_model(model_name):
+    my_bar = st.progress(0)    
+    model =  _models._build_model(session_state.data, model_name)
+    my_bar.progress(50)
+    model_results = model._return_preds()
     model_results = model_results.sort_values('Dates', ascending=False).set_index('Dates')
+    model.predictive_power()
+    my_bar.progress(60)
+    model._feature_importance()
+    my_bar.progress(70)
+    model._feature_importance_over_time(forecast_range=30)
+    my_bar.progress(90)
+    session_state.metrics = model._return_mean_error_metrics()
+    my_bar.progress(100)
+    
     return model_results
 
 ################################################################################
@@ -108,12 +120,14 @@ date_range = st.sidebar.date_input("Select a date range",
 # Main Page
 ################################################################################
 
-st.title("Decision Support System for CDX Trading")
+st.title("Decision Support System for Bloomberg Analytics")
 
-model_chooser = st.selectbox('Which Model Would You Like to Use?',
+session_state.model_chooser = st.selectbox('Which Model Would You Like to Use?',
                              (['XGBoost']))
 
-st.write('You selected:', model_chooser)
+st.write('You selected:', session_state.model_chooser)
+
+
 
 ################################################################################
 # If Data File -> Pre-process raw data 
@@ -128,8 +142,7 @@ if st.sidebar.button('Load Data'):
                                                    target_feature,
                                                    momentum_list.split("delimiter"))
         my_bar.progress(60)
-        session_state.pipeline = pipeline
-        session_state.data = session_state.pipeline._return_xlsx_dataframe()
+        session_state.data = pipeline.complete_data
         my_bar.progress(80)
         # Set dates in the dataframe 
         session_state.data['Dates'] = pd.to_datetime(session_state.data['Dates']).dt.date
@@ -146,12 +159,14 @@ if st.sidebar.button('Load Data'):
 
 # If pipeline built and model selected build predictions 
 if st.sidebar.button('Train Model'):
-    if pipeline and model_chooser:
-        log.info(" Training Model: {}".format(model_chooser))
+    if pipeline and session_state.model_chooser:
+        log.info(" Training Model: {}".format(session_state.model_chooser))
         
         # _build_model and return it to sessions state
-        session_state.model_result = run_model(model_chooser)
+        session_state.model_result = run_model(session_state.model_chooser)
         session_state.model_loaded = True
+        if session_state.model_chooser == 'XGBoost':
+            session_state.regression = True
     else:
         st.sidebar.info('Please load data and select a model')
 
@@ -187,13 +202,13 @@ if session_state.model_loaded:
                                 feature_columns,
                                 target_feature)
 
-        #st.plotly_chart(fig)
-        # OR plt.savefig("out.png")
-        features = Image.open(str(path)+'\\_img\\predicative_power.png')
-        st.image(features, caption='Predictive Power of Features Over Time', width=300)
+        if session_state.regression:
+            features = Image.open(str(path)+'\\_img\\predicative_power.png')
+            st.image(features, caption='Predictive Power of Features Over Time', width=300)
         my_bar.progress(60)
         
         st.header("Predictions and Forecasts")
+        st.write(session_state.metrics)
         
         display_data = session_state.model_result['final_result'].head(200)
         for ds in session_state.days_selected:
