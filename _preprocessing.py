@@ -245,10 +245,10 @@ class _preprocess_xlsx:
     def _return_Y_encoded(self):
         return self.Y_encoded, self.Y_train_encoded, self.Y_test_encoded
 
-    def _return_xlsx_dataframe(self):
+    def _return_dataframe(self):
         return self.complete_data
     
-    def _return_X_Y_dataframes(self):
+    def _return_X_Y_dataframe(self):
         return self.X, self.Y
     
     def _return_forecast_list(self):
