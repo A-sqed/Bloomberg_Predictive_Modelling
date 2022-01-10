@@ -47,7 +47,7 @@ handler = logging.FileHandler(str(path)+'/logs/_main.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 ################################################################################
-#  
+#  Helper Functions
 ################################################################################
 session_state.model_loaded = False
 
