@@ -10,17 +10,7 @@ st.set_option('deprecation.showfileUploaderEncoding', False)
 import datetime
 import logging
 import pathlib
-import sys
-import time
-
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.figure_factory as ff
-import plotly.graph_objs as go
-import pylab as pl
-import seaborn as sns
 from PIL import Image
 
 import _models
