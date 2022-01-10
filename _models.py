@@ -36,7 +36,6 @@ from statsmodels.tsa.stattools import adfuller, grangercausalitytests
 from tqdm import tqdm
 from xgboost import XGBRegressor, plot_importance, plot_tree
 
-import _preprocessing
 path = pathlib.Path(__file__).parent.absolute()
 
 #Debug and logger
@@ -65,7 +64,6 @@ class _build_model:
 
         self.pipeline = pipeline
         self.timeseries_splits = 5
-        self.forecast_horizon = max(pipeline._return_forecast_list())
         self.scaler = MinMaxScaler(feature_range=(0,1))
         
         # Return Processesed Data 
@@ -73,7 +71,7 @@ class _build_model:
             pipeline._return_test_and_train_data()
         self.Y_encoded, self.Y_train_encoded, self.Y_test_encoded = \
             pipeline._return_Y_encoded() 
-        self.X_df, self.Y_df = pipeline._return_X_Y_dataframes()
+        self.X_df, self.Y_df = pipeline._return_X_Y_dataframe()
         
         logger.info(" Selecting model {}".format(model_name))
         
@@ -106,7 +104,7 @@ class _build_model:
         self.scores = cross_val_score(self.model, self.X_df, self.Y_df, cv=tss)
         logger.info(" Mean cross-validataion Accuracy: %0.2f (+/- %0.3f)" % (self.scores.mean(), 
                                                                              self.scores.std()))
-        
+        self.forecast_horizon = max(pipeline.forecast_list)
         self.features_over_time_dict = {}
         
 

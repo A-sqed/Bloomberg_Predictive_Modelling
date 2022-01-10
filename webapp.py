@@ -31,7 +31,7 @@ session_state = st.session_state
 path = pathlib.Path(__file__).parent.absolute()
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 banner = Image.open(str(path)+'\\_img\\arrow_logo.png')
-st.sidebar.image(banner, caption='Forecast Predictions', width=300)
+st.sidebar.image(banner, caption='ML Predictions From Bloomberg Data Pulls', width=200,)
 pd.set_option('display.max_columns', None) 
 global counter
 counter = 0
@@ -76,20 +76,23 @@ def color_arrow(val):
 # Use pipeline and model selection to run results 
 def run_model(model_name):
     my_bar = st.progress(0)    
-    model =  _models._build_model(session_state.data, model_name)
+    st.session_state.model =  _models._build_model(st.session_state.pipeline, model_name)
     my_bar.progress(50)
-    model_results = model._return_preds()
-    model_results = model_results.sort_values('Dates', ascending=False).set_index('Dates')
-    model.predictive_power()
+    
+    #Get the predictions and soprt by date
+    st.session_state.model_results = st.session_state.model._return_preds()
+    #st.session_state.model_results = st.session_state.model_results[np.argsort( st.session_state.model_results[:, 1])]
+  
+    st.session_state.model.predictive_power()
     my_bar.progress(60)
-    model._feature_importance()
+    st.session_state.model._feature_importance()
     my_bar.progress(70)
-    model._feature_importance_over_time(forecast_range=30)
+    st.session_state.model._feature_importance_over_time(forecast_range=30)
     my_bar.progress(90)
-    session_state.metrics = model._return_mean_error_metrics()
+    st.session_state.metrics = st.session_state.model._return_mean_error_metrics()
     my_bar.progress(100)
     
-    return model_results
+
 
 ################################################################################
 # Side Bar - File and Date Chooser  
@@ -106,7 +109,7 @@ target_feature = st.sidebar.text_input("Target Feature",
                                        type="default")
 
 momentum_list = st.sidebar.text_input("Add Momentum Parameters", 
-                                       value="LF98TRUU_Index_OAS, LUACTRUU_Index_OAS", 
+                                       value="LF98TRUU_Index_OAS,LUACTRUU_Index_OAS", 
                                        type="default")
 
 
@@ -132,21 +135,24 @@ st.write('You selected:', session_state.model_chooser)
 ################################################################################
 # If Data File -> Pre-process raw data 
 ################################################################################
-if st.sidebar.button('Load Data'):
+if st.sidebar.button('Load Data '):
     if file_buffer:
         my_bar = st.progress(0)
         log.info(" Preprocessing Data File")
         my_bar.progress(20)
-        
-        pipeline = _preprocessing._preprocess_xlsx(file_buffer,
+        momentum_list = list(momentum_list.split(","))
+        st.session_state.pipeline = _preprocessing._preprocess_xlsx(file_buffer,
                                                    target_feature,
-                                                   momentum_list.split("delimiter"))
+                                                   momentum_list = momentum_list)
         my_bar.progress(60)
-        session_state.data = pipeline.complete_data
+        data = st.session_state.pipeline._return_dataframe()
+        st.write('Current Dataframe Below:')
+        st.write(data)
+        st.session_state.pipeline_built = True
         my_bar.progress(80)
         # Set dates in the dataframe 
-        session_state.data['Dates'] = pd.to_datetime(session_state.data['Dates']).dt.date
-        session_state.data = session_state.data[(session_state.data['Dates'] >= date_range[0]) & 
+        st.session_state.data['Dates'] = pd.to_datetime(session_state.data['Dates']).dt.date
+        st.session_state.data = session_state.data[(session_state.data['Dates'] >= date_range[0]) & 
                                                 (session_state.data['Dates'] <= date_range[1])]
         my_bar.progress(100)
         
@@ -159,11 +165,11 @@ if st.sidebar.button('Load Data'):
 
 # If pipeline built and model selected build predictions 
 if st.sidebar.button('Train Model'):
-    if pipeline and session_state.model_chooser:
+    if session_state.pipeline_built and session_state.model_chooser:
         log.info(" Training Model: {}".format(session_state.model_chooser))
         
         # _build_model and return it to sessions state
-        session_state.model_result = run_model(session_state.model_chooser)
+        run_model(session_state.model_chooser)
         session_state.model_loaded = True
         if session_state.model_chooser == 'XGBoost':
             session_state.regression = True
@@ -194,62 +200,31 @@ if session_state.model_loaded:
         histo_table = st.checkbox("Display Historical Data Table?", False)
         
         if histo_table:
-            st.write(session_state.data.sort_values('Dates', ascending=False).head(200).set_index('Dates'))
+            st.write(session_state.model_results)
         
         feature_columns = list(session_state.data.columns)
         
         options = st.multiselect('View Historical Indices',
                                 feature_columns,
                                 target_feature)
-
+        my_bar.progress(40)
         if session_state.regression:
-            features = Image.open(str(path)+'\\_img\\predicative_power.png')
-            st.image(features, caption='Predictive Power of Features Over Time', width=300)
-        my_bar.progress(60)
-        
-        st.header("Predictions and Forecasts")
-        st.write(session_state.metrics)
-        
-        display_data = session_state.model_result['final_result'].head(200)
-        for ds in session_state.days_selected:
-            display_data['CDX_HY_Pred_{}D'.format(ds)] = display_data['CDX_HY_UpNext_{}Day'.format(ds)].map(
-                lambda x: (u"\u2191" if x else u"\u2193") )
-            display_data['CDX_IG_Pred_{}D'.format(ds)] = display_data['CDX_IG_UpNext_{}Day'.format(ds)].map(
-                lambda x: (u"\u2191" if x else u"\u2193") )
+            st.header("Predictions and Forecasts")
+            MAE, MSE, RMSE = session_state.metrics
+            st.subheader("MAE: {:.4f}, MSE: {:.4f}, RMSE: {:.4f}".format(MAE, MSE, RMSE))
+            features = Image.open(str(path)+'\\_img\\predictive_power.png')
+            st.image(features, caption='Predictive Power of Features', width=1000)
+            my_bar.progress(60)
+            features = Image.open(str(path)+'\\_img\\feats_importance.png')
+            st.image(features, caption='Features Importance For Forecast Period', width=1000)
+            my_bar.progress(70)
+            features = Image.open(str(path)+'\\_img\\feats_importance_over_time.png')
+            st.image(features, caption='Features Importance Over Time', width=1000)
+            
+        my_bar.progress(90)
+                
+        st.write(st.session_state.model_results)
 
-        def check_name(col_name):
-            if col_name in ['CDX_HY','CDX_IG', 'Dates']:
-                return True
-            else:
-                for prefix in ['CDX_HY_Pred','CDX_IG_Pred']:
-                    if col_name.startswith(prefix):
-                        return True
-            return False
-        keep_cols = [col for col in display_data.columns if check_name(col)]
-        display_data = display_data[keep_cols]
-
-        my_bar.progress(80)
-        
-        def get_trade_positions(latest_df):
-            HY_pos = IG_pos = "<font color='red'>**SHORT**</font>"
-            HY_explanation = IG_explanation = "DECREASE"
-            if (latest_df['CDX_HY_Pred_30D'] == u"\u2191") and (latest_df['CDX_HY_Pred_60D'] == u"\u2191"):
-                HY_pos = "<font color='red'>**LONG**</font>, based on our predicted price increase in longer term"
-                HY_explanation = 'INCREASE'
-            if (latest_df['CDX_IG_Pred_30D'] == u"\u2191") and (latest_df['CDX_IG_Pred_60D'] == u"\u2191"):
-                IG_pos = "<font color='red'>**LONG**</font>, based on our predicted price increase in longer term"
-                IG_explanation = 'INCREASE'
-            return HY_pos, IG_pos, HY_explanation, IG_explanation
-        
-        
-        HY_pos, IG_pos, HY_explanation, IG_explanation = get_trade_positions(display_data.iloc[0])
-        
-        st.markdown("Model recommends taking {} position on CDX HY, based on our predicted price {} in longer term".format(HY_pos, HY_explanation),
-                   unsafe_allow_html=True)
-        st.markdown("Model recommends taking {} position on CDX IG, based on our predicted price {} in longer term".format(IG_pos, IG_explanation),
-                   unsafe_allow_html=True)
-        s = display_data.style.applymap(color_arrow)
-        s
         my_bar.progress(100)
         
 ################################################################################
