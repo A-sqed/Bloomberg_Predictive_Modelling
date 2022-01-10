@@ -238,6 +238,9 @@ class _preprocess_xlsx:
 
     def _return_feature_names(self):
         return self.feature_cols
+    
+    def _return_complete_data(self):
+        return self.complete_data
 
     def _return_test_and_train_data(self):
         return self.X_train, self.X_test, self.Y_train, self.Y_test
