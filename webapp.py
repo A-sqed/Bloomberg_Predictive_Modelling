@@ -75,91 +75,18 @@ def run_model(model_name):
     my_bar.progress(90)
     session_state.metrics = session_state.model._return_mean_error_metrics()
     my_bar.progress(100)
-    
-################################################################################
-# Main Page
-################################################################################
-my_bar = None
-
-st.title("Decision Support System for Bloomberg Analytics")
-
-if 'data' in session_state:
-    st.info('Currently Selected XLSX File: {}'.format(session_state.file_buffer.name))
-
-else:
-    st.info('Please load a properly formatted XLSX data file')
-    
-if 'model_type' not in session_state:
-    st.info('Please select a model type and train')
-
-elif 'model' not in session_state and session_state.model_type != '':
-    st.warning('Please train the model to continue')
-
-elif 'model' not in session_state and session_state.model_type == '': 
-    st.info('Please select a model type and train')
-            
-else:
-    st.info('Currently Selected Model: {}'.format(session_state.model_type))
-
-if 'model' in session_state:
-    
-    page_selection = st.sidebar.radio("Page", 
-                                      ('Historic Data',
-                                       'Model Analsys'), 
-                                      index=0)
-
-    if page_selection == 'Main':
-        
-        if not my_bar:
-            my_bar = st.progress(0)
-        
-        st.header("Historical Data:")
-        
-        if 'data' in session_state:
-            session_state.feature_columns = list(session_state.data.columns)
-            my_bar.progress(20)
-            options = st.multiselect('View Historical Indices',
-                                    session_state.feature_columns,
-                                    session_state.target_feature)
-            
-            df_2target = pd.melt(session_state.data, id_vars=['Dates'], value_vars=options)
-            df_2target.columns = ['Dates','Target','Value']
-
-            fig = px.line(df_2target, x="Dates", y="Value", color='Target', width=1100)
-            st.plotly_chart(fig)
-        
-        my_bar.progress(40)
-        
-        session_state.histo_table = st.checkbox("Display Historical Data Table?", False)
-        
-        if session_state.histo_table:
-            st.write(session_state.data.sort_values('Dates', ascending=False).set_index('Dates'))
-        my_bar.progress(80)
-        
-        
-        if 'regression' in session_state:
-            st.header("Feature Importance & Model Analysis")
-            MAE, MSE, RMSE = session_state.metrics
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Mean Absolute Error", MAE)
-            col2.metric("Mean Square Error", MSE,)
-            col3.metric("Root Mean Square Error", RMSE)
-            
-            features = Image.open(str(path)+'\\_img\\predictive_power.png')
-            st.image(features, caption='Predictive Power of Features', width=1000)
-            my_bar.progress(60)
-            features = Image.open(str(path)+'\\_img\\feats_importance.png')
-            st.image(features, caption='Features Importance For Forecast Period', width=1000)
-            my_bar.progress(70)
-            features = Image.open(str(path)+'\\_img\\feats_importance_over_time.png')
-            st.image(features, caption='Features Importance Over Time', width=1000)             
-
-        my_bar.progress(100)
-        
+    my_bar.progress(0)
 
 ################################################################################
 # Side Bar - File and Date Chooser  
 ################################################################################
+if 'model' in session_state:
+    st.sidebar.subheader("Menu: ")
+    session_state.page_selection = st.sidebar.radio("Please choose below: ", 
+                                      ('Historic Data',
+                                       'Feature Importance & Model Analysis'), 
+                                      index=0)
+    
 st.sidebar.subheader("Reset: ")
 
 if st.sidebar.button('Reset All'):
@@ -208,11 +135,7 @@ if st.sidebar.button('Load Data '):
         my_bar.progress(60)
         
         session_state.data  = session_state.pipeline._return_dataframe()
-        
-        if 'data' in session_state:
-            st.write('Current Dataframe Below:')
-            st.dataframe(session_state.data)
-                
+                        
         my_bar.progress(80)
         
         # Set dates in the dataframe 
@@ -222,7 +145,9 @@ if st.sidebar.button('Load Data '):
         session_state.data = session_state.data[(session_state.data['Dates'] >= date_range[0]) & 
                                                 (session_state.data['Dates'] <= date_range[1])]
         my_bar.progress(100)
-        
+        st.success("Model Loaded Successfully")
+        my_bar.progress(0)
+                
     else:
         st.sidebar.info('Please select a file')
 
@@ -234,29 +159,102 @@ session_state.model_type = \
 
 # If pipeline built and model selected build predictions 
 if st.sidebar.button('Train Model'):
-    
-    if session_state.model_type == '':
-        st.warning('Must choose a model to continue')  
-        
-    else:
-        if 'data' and 'model' not in session_state:
-            
-            log.info(" Training Model: {}".format(session_state.model_type))
-            
-            # _build_model and return it to sessions state
-            run_model(session_state.model_type)
-            
-            if session_state.model_type == 'XGBoost':
-                session_state.regression = True
-        
-        elif 'data' not in session_state and 'model' in session_state:
-            st.sidebar.info('Please load data to train')
-        
-        elif 'model_type' not in session_state:
-               st.sidebar.info('Please choose a model to continue') 
-        else:
-            st.sidebar.info('Please load data to train')
 
+    
+    if 'data' in session_state and 'model' not in session_state and session_state.model_type != '':
+        
+        log.info(" Training Model: {}".format(session_state.model_type))
+
+        # _build_model and return it to sessions state
+        run_model(session_state.model_type)
+        
+        if session_state.model_type == 'XGBoost':
+            session_state.regression = True
+
+        st.success("Model Trained Successfully")
+
+    elif 'data' not in session_state:
+        st.sidebar.warning('Please load data to train')
+    
+    elif session_state.model_type == '':
+            st.sidebar.warning('Please choose a model to continue')  
+            
+
+
+
+   
+################################################################################
+# Main Page
+################################################################################
+my_bar = None
+
+st.title("Decision Support System for Bloomberg Analytics")
+
+if 'data' not in session_state and session_state.file_buffer == None: 
+    st.info('Please Load a Properly Formatted XLSX File and Train Model To Continue')
+
+else:
+    pass
+    #st.info('Currently Selected XLSX File: {}'.format(session_state.file_buffer.name))
+    
+if 'data' in session_state and 'model_type' in session_state: 
+    if session_state.model_type != '' and 'model' in  session_state:
+        pass
+        #st.info('Currently Trained Model: {}'.format(session_state.model_type))
+    elif session_state.model_type != '' :
+        st.info('Currently Selected Model: {}'.format(session_state.model_type))
+
+if 'model' in session_state:
+    my_bar = st.progress(0)
+    
+    if session_state.page_selection == 'Historic Data':
+
+        st.header("Historical Data")
+        
+        if 'data' in session_state:
+            session_state.feature_columns = list(session_state.data.columns)
+            my_bar.progress(20)
+            options = st.multiselect('Choose Data Options to Display:',
+                                    session_state.feature_columns,
+                                    session_state.target_feature)
+            
+            df_2target = pd.melt(session_state.data, id_vars=['Dates'], value_vars=options)
+            df_2target.columns = ['Dates','Target','Value']
+
+            fig = px.line(df_2target, x="Dates", y="Value", color='Target', width=1100)
+            st.plotly_chart(fig)
+        
+        my_bar.progress(40)
+        
+        session_state.histo_table = st.checkbox("Display Historical Data Table?", False)
+        
+        if session_state.histo_table:
+            st.write(session_state.data.sort_values('Dates', ascending=False).set_index('Dates'))
+        my_bar.progress(100)
+        
+    if session_state.page_selection == 'Feature Importance & Model Analysis':
+    
+        if 'regression' in session_state:
+            st.header("Feature Importance & Model Analysis")
+            MAE, MSE, RMSE = session_state.metrics
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Mean Absolute Error", MAE)
+            col2.metric("Mean Square Error", MSE,)
+            col3.metric("Root Mean Square Error", RMSE)
+            my_bar.progress(40)
+            features = Image.open(str(path)+'\\_img\\predictive_power.png')
+            st.image(features, caption='Predictive Power of Features', width=1000)
+            my_bar.progress(60)
+            features = Image.open(str(path)+'\\_img\\feats_importance.png')
+            st.image(features, caption='Features Importance For Forecast Period', width=1000)
+            my_bar.progress(70)
+            features = Image.open(str(path)+'\\_img\\feats_importance_over_time.png')
+            st.image(features, caption='Features Importance Over Time', width=1000)             
+            my_bar.progress(100)
+                
+        
+    my_bar.progress(0)
+        
 
 
 _max_width_()
