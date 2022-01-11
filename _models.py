@@ -10,6 +10,7 @@ import random
 import warnings
 
 import matplotlib.pyplot as plt
+import streamlit as st
 import numpy as np
 import pandas as pd
 import ppscore as pps
@@ -96,6 +97,13 @@ class _build_model:
         # Predict
         logger.info(" Predicting with model: \n {}".format(self.model))
         self.model_preds = self.model.predict(self.X_test)
+        
+        #
+        self.final_data = self.pipeline._return_complete_data()
+        self.final_data[self.pipeline._return_target_col()] = \
+            self.model.predict(self.final_data[self.pipeline._return_feature_names()])
+        self.final_data = self.final_data.sort_values('Dates', ascending=False).set_index('Dates')
+        
         self.scores = cross_val_score(self.model, self.X_df, self.Y_df, cv=tss)
         logger.info(" Mean cross-validataion Accuracy: %0.2f (+/- %0.3f)" % (self.scores.mean(), 
                                                                              self.scores.std()))
@@ -275,7 +283,45 @@ class _build_model:
     def _return_preds(self):
         return self.model_preds
 
+    def _return_preds_with_dates(self):
+        self.model_preds['Dates'] = self.X_test_dates
+        return self.model_preds  
+
     def _return_model(self):
         return self.model
     
 
+
+
+"""
+################################################################################
+# Feature Importance Page 
+################################################################################      
+        
+    if page_selection == 'Feature Importance':
+        my_bar = st.progress(0)
+        feature_description = pd.read_csv('feature_description.csv')
+        st.write(feature_description)
+        day_display = st.selectbox('Which Model?', session_state.days_selected)
+        my_bar.progress(20)
+        if day_display:
+            session_state.model_result[day_display]['feature_plot']
+        my_bar.progress(100)
+
+################################################################################
+# Model Importance Page 
+################################################################################           
+        
+    if page_selection == 'Model Performance':
+        my_bar = st.progress(0)
+        day_display = st.selectbox('Which Model?', session_state.days_selected, 1)
+        my_bar.progress(20)
+        if day_display:
+            session_state.model_result[day_display]['ROCplot']
+        my_bar.progress(100)
+
+
+
+
+
+"""
