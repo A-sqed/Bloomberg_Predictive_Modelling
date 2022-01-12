@@ -65,6 +65,7 @@ def run_model(model_name):
     if 'model' not in session_state:
         log.info(" Building the current model...")    
         session_state.model =  _models._build_model(session_state.pipeline, model_name)
+        session_state.final_preds = session_state.model._return_final_data()
     my_bar.progress(50)
     session_state.model_results = session_state.model._return_preds()
     session_state.model.predictive_power()
@@ -80,13 +81,7 @@ def run_model(model_name):
 ################################################################################
 # Side Bar - File and Date Chooser  
 ################################################################################
-if 'model' in session_state:
-    st.sidebar.subheader("Menu: ")
-    session_state.page_selection = st.sidebar.radio("Please choose below: ", 
-                                      ('Historic Data',
-                                       'Feature Importance & Model Analysis'), 
-                                      index=0)
-    
+
 st.sidebar.subheader("Reset: ")
 
 if st.sidebar.button('Reset All'):
@@ -119,9 +114,8 @@ date_range = st.sidebar.date_input("Select a date range",
                                    [datetime.date(2012, 8, 8), 
                                     datetime.date(2020, 7, 31)] )
 
-################################################################################
+
 # If Data File -> Pre-process raw data 
-################################################################################
 if st.sidebar.button('Load Data '):
     
     if 'file_buffer' in session_state:
@@ -151,9 +145,8 @@ if st.sidebar.button('Load Data '):
     else:
         st.sidebar.info('Please select a file')
 
-################################################################################
+
 # If Pipeline Exists -> Train Model 
-################################################################################
 session_state.model_type = \
     st.sidebar.selectbox('Which Model Would You Like to Use?', (['','XGBoost']))
 
@@ -179,10 +172,13 @@ if st.sidebar.button('Train Model'):
     elif session_state.model_type == '':
             st.sidebar.warning('Please choose a model to continue')  
             
-
-
-
-   
+if 'model' in session_state:
+    st.sidebar.subheader("Page Menu: ")
+    session_state.page_selection = st.sidebar.radio("Please choose below: ", 
+                                      ('Historic Data',
+                                       'Feature Importance & Model Analysis'), 
+                                      index=0)
+    
 ################################################################################
 # Main Page
 ################################################################################
@@ -220,7 +216,6 @@ if 'model' in session_state:
             
             df_2target = pd.melt(session_state.data, id_vars=['Dates'], value_vars=options)
             df_2target.columns = ['Dates','Target','Value']
-
             fig = px.line(df_2target, x="Dates", y="Value", color='Target', width=1100)
             st.plotly_chart(fig)
         
@@ -242,6 +237,16 @@ if 'model' in session_state:
             col2.metric("Mean Square Error", MSE,)
             col3.metric("Root Mean Square Error", RMSE)
             my_bar.progress(40)
+            session_state.final_preds.reset_index(inplace=True)
+            options = [session_state.target_feature,
+                       str(session_state.target_feature)+"_Forecast"]
+        
+            df_2target = pd.melt(session_state.final_preds, id_vars='Dates', value_vars=options)
+            df_2target.columns = ['Dates','Target','Value']
+            fig = px.line(df_2target, x="Dates", y="Value", color='Target', width=1100)
+            st.plotly_chart(fig)
+
+            
             features = Image.open(str(path)+'\\_img\\predictive_power.png')
             st.image(features, caption='Predictive Power of Features', width=1000)
             my_bar.progress(60)

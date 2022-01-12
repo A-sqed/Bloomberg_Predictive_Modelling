@@ -1,75 +1,35 @@
-## System requirements:
+## Installation:
 
-1. Downloaded the Program and Data Files contained in this repository (you can download the entire repo as zip, then extract them)
-2. have a Anaconda python distribution installed on your computer
-3. make sure the installed Pandas library is lower than v1.1.0
-4. run "pip install streamlit" to install the library streamlit
+Use pip install -r requirements.txt to install the required libraries.
 
-## To preprocess newly extracted data from Bloomberg terminal:
+## To Begin:
 
-1. ```
-    Open the Economic Data Cleaning.ipynb using Jupyter notebook
-   ```
-2. ```
-    Modify the second cell of input data to be the Bloomberg extract that you wish to process. e.g. 'DATA_PULL_BB_080120_HC.xlsx'
-   ```
-3. ```
-    Modify the last cell of output filename as needed e.g. 'Economic_data_clean_20200801.xlsx'
-   ```
-4. ```
-    Run all the cells to generate the clean output file that can be served to the program.
-   ```
+1. Use Bloomberg's Excel plugin to create an XLSX file and put into the \data folder
+2. An Example file has been provided. It must contain dates and hard values
+3. cd into the \Bloomberg\Predicative\Modelling Folder
 
-- ```
-   The example raw dataset (from Bloomberg) and processed dataset (excel) are available in this repository. 
-  ```
+## To Run the Web Interface:
 
-## To run the Web Application:
+1. Go to your terminal and move to the directory where the webapp.py code is
+2. In the terminal type "streamlit run webapp.py"
+3. Click on the top IP address link that is generated (should take you to the browser)
+4. On the left, select an excel file, e.g., the default file included in data
+5. Specify which category is your target for forecasting
+5. Include a list of categories (separated by a comma (,) where you would like to include momentum features, e.g., rolling averages
+6. Press the "Train Model" button
 
-1. ```
-    Go to your terminal and move to the directory where the Application.py code is
-   ```
-2. ```
-    In the terminal type “streamlit run webapp.py”
-   ```
-3. ```
-    Click on the top IP address link that is generated (should take you to the browser)
-   ```
-4. ```
-    On the left, select an excel file, e.g. the (Economic_data_clean_20200801.xlsx)
-   ```
-5. ```
-    On the left, select a start and end time for data to train on
-   ```
-6. ```
-    Press the “Train Model” button
-   ```
+## Example Outputs:
+Hisotrical Data & Forecasts:
+![alt text](_img\example_forecast.PNG)
 
-## Additional Options For The Web Application:
+Feature Importance Over Time:
+![alt text](_img\feats_importance_over_time.png)
 
-1. ```
-    Press “Display Historical Data Table?” to see the data we’re using.
-   ```
-2. ```
-    Click in the “View Historical Indices” search field. You can select multiple other factors and see how those factors compares to the target variables.
-   ```
-3. ```
-    On the left, can press on “Feature Importance”. On the page can pick “which model?”, the number picked shows the graphs when the model forecasts is that number of days ahead
-   ```
-4. ```
-    On the left, can press on “Model Performance”. On the page can pick “which model?”, the number picked shows the graphs when the model forecasts is that number of days ahead
-   ```
+Predictive Power:
+![alt text](_img\predictive_power.png)
 
-## Prediction and Forecast Interpretation:
-
-1. ```
-    The written recommendation. The top written prediction is for the CDX HY, the bottom written prediction is for the CDX IG
-   ```
-2. ```
-    Each row represent different days.
-   ```
-3. ```
-    Green arrow up, means the model predicts the corresponding CDX will increase. Red arrow down, means the model predicts the corresponding CDX will decrease.
-   ```
-
-## Prediction and Forecast Column Label Interpretation:
+## Work-In-Progress Features:
+1. Inclusion of additional Regression & Classification Models
+2. Model Analytics for Classifiers
+3. Ability to integrate database sources
+4. Customize forecasting periods

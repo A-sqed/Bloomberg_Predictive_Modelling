@@ -10,6 +10,8 @@ import random
 import warnings
 
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+rcParams.update({'figure.autolayout': True})
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -98,9 +100,8 @@ class _build_model:
         logger.info(" Predicting with model: \n {}".format(self.model))
         self.model_preds = self.model.predict(self.X_test)
         
-        #
         self.final_data = self.pipeline._return_complete_data()
-        self.final_data[self.pipeline._return_target_col()] = \
+        self.final_data[(self.pipeline._return_target_col())+'_Forecast'] = \
             self.model.predict(self.final_data[self.pipeline._return_feature_names()])
         self.final_data = self.final_data.sort_values('Dates', ascending=False).set_index('Dates')
         
@@ -129,7 +130,7 @@ class _build_model:
         f, ax = plt.subplots(figsize=(16, 5))
         ax.set_title("Predicative Power for {0} at {1} Days".format(pipeline_target, forecast_range))
         sns.barplot(data=predictors_df, y="x", x="ppscore",palette="rocket")
-        plt.savefig((str(path))+"\\_img\\predictive_power.png")
+        plt.savefig((str(path))+"\\_img\\predictive_power.png",  bbox_inches="tight")
         if plot:
             f.show() 
                  
@@ -235,7 +236,7 @@ class _build_model:
         ax.set(xlabel='Days Out', ylabel='Predictive Importance')
         ax.set(xticks= list(range(1,forecast_range+1)))
         ax.legend(column_names)
-        plt.savefig((str(path))+"\\_img\\feats_importance_over_time.png")
+        plt.savefig((str(path))+"\\_img\\feats_importance_over_time.png", bbox_inches="tight")
        
     # Classification only, n/a for regression models 
     def _return_roc_and_precision_recall_curves(self):
@@ -286,6 +287,9 @@ class _build_model:
     def _return_preds_with_dates(self):
         self.model_preds['Dates'] = self.X_test_dates
         return self.model_preds  
+
+    def _return_final_data(self):
+        return self.final_data
 
     def _return_model(self):
         return self.model
