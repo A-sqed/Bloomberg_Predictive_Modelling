@@ -20,13 +20,13 @@ Use pip install -r requirements.txt to install the required libraries.
 
 ## Example Outputs:
 Hisotrical Data & Forecasts:
-![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/_img/example_forecast.PNG)
+![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/blob/3c1415df764e103f68a542d6cbb434d1b9b71661/_img/example_forecast.PNG)
 
 Feature Importance Over Time:
-![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/_img/feats_importance_over_time.png)
+![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/blob/3c1415df764e103f68a542d6cbb434d1b9b71661/_img/feats_importance_over_time.png)
 
 Predictive Power:
-![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/_img/predictive_power.png)
+![alt text](https://github.com/A-sqed/Bloomberg_Predictive_Modelling/blob/3c1415df764e103f68a542d6cbb434d1b9b71661/_img/predictive_power.png)
 
 ## Work-In-Progress Features:
 1. Inclusion of additional Regression & Classification Models
